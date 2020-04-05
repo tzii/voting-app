@@ -7,40 +7,60 @@ use std::collections::HashMap;
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[derive(Serialize, Deserialize)]
-pub struct TextMessage {
-    text: String,
+pub struct VotingOptions {
+    user: String,
+    question: String,
+    variants: HashMap<String, String>,
 }
 
 #[near_bindgen]
 #[derive(Default, BorshDeserialize, BorshSerialize)]
-pub struct Welcome {
+pub struct Voting {
     records: HashMap<String, String>,
 }
 
 #[near_bindgen]
-impl Welcome {
-    pub fn set_greeting(&mut self, message: String) {
+impl Voting {
+    pub fn vote(&mut self, message: String) {
         let account_id = env::signer_account_id();
         self.records.insert(account_id, message);
     }
 
-    pub fn welcome(&self, account_id: String) -> TextMessage {
+    pub fn show_options(&self, account_id: String) -> VotingOptions {
         match self.records.get(&account_id) {
             None => {
                 env::log(b"Using default message.");
-                return TextMessage {
-                    text: format!("Hello {}", account_id),
+                return VotingOptions {
+                    user: account_id,
+                    question: "Default question".to_string(),
+                    variants: [
+                        ("question1".to_string(), "Question 1".to_string()),
+                        ("question2".to_string(), "Question 2".to_string()),
+                    ]
+                    .iter()
+                    .cloned()
+                    .collect(),
                 };
             }
             _ => {
-                return TextMessage {
-                    text: format!("{} {}", self.records.get(&account_id).unwrap(), account_id),
-                }
+                env::log(b"Using custom question.");
+                return VotingOptions {
+                    user: account_id,
+                    question: "Custom question".to_string(),
+                    variants: [
+                        ("question3".to_string(), "Question 3".to_string()),
+                        ("question4".to_string(), "Question 4".to_string()),
+                    ]
+                    .iter()
+                    .cloned()
+                    .collect(),
+                };
             }
         }
     }
 }
 
+/*
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(test)]
 mod tests {
@@ -72,7 +92,7 @@ mod tests {
     fn set_get_message() {
         let context = get_context(vec![], false);
         testing_env!(context);
-        let mut contract = Welcome::default();
+        let mut contract = Voting::default();
         contract.set_greeting("howdy".to_string());
         assert_eq!(
             "howdy bob_near".to_string(),
@@ -91,3 +111,4 @@ mod tests {
         );
     }
 }
+*/

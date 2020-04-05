@@ -24,9 +24,9 @@ async function InitContract() {
     window.contract = await near.loadContract(nearConfig.contractName, { // eslint-disable-line require-atomic-updates
         // NOTE: This configuration only needed while NEAR is still in development
         // View methods are read only. They don't modify the state, but usually return some value.
-        viewMethods: ['welcome'],
+        viewMethods: ['show_options'],
         // Change methods can modify the state. But you don't receive the returned value when called.
-        changeMethods: ['set_greeting'],
+        changeMethods: ['vote'],
         // Sender is the account ID to initialize transactions.
         sender: window.accountId,
     });
@@ -52,7 +52,7 @@ function signedOutFlow() {
             // The contract name that would be authorized to be called by the user's account.
             window.nearConfig.contractName,
             // This is the app name. It can be anything.
-            'Welcome to NEAR'
+            'Voting app'
         );
     });
 }
@@ -62,7 +62,7 @@ function signedInFlow() {
     // Displaying the signed in flow container.
     document.getElementById('signed-in-flow').classList.remove('d-none');
 
-    welcome();
+    show_options();
 
     // Adding an event to a sign-out button.
     document.getElementById('sign-out-button').addEventListener('click', () => {
@@ -72,19 +72,50 @@ function signedInFlow() {
     });
 
     // Adding an event to change greeting button.
-    document.getElementById('change-greeting').addEventListener('click', () => {
-        setGreeting();
+    document.getElementById('vote-button').addEventListener('click', () => {
+        vote_submit();
     });
 }
 
-async function setGreeting() {
-    await window.contract.set_greeting({message:'Howdy'});
-    welcome();
+async function vote() {
+    await window.contract.vote({option:''});
+    show_options();
 }
 
-async function welcome() {
-    const response = await window.contract.welcome({account_id:window.accountId});
-    document.getElementById('speech').innerText = response.text;
+async function show_options() {
+    const response = await window.contract.show_options({account_id:window.accountId});
+    /*const response = {
+        user: "Nik",
+        question: "What is your transport?",
+        variants: {
+            "bike": "Bike",
+            "car": "Car"
+        }
+    }; */
+    var variants = '';
+    // TODO: maybe use older ES syntax?
+    for (const [key, value] of Object.entries(response.variants)) {
+        variants += '<input type="checkbox" id="' + key +'" value="' + key + '">' +
+           '<label for="' + name + '">' + value + '</label><br>';
+    }
+    const options = '<form id="voteForm">' +
+        '<fieldset>' +
+        '<legend>' +
+        "Dear @" + response.user + " please vote on <br/><b>" + response.question + "</b>" +
+        '</legend>' +
+        variants +
+        '</fieldset>' +
+        '</form>';
+    document.getElementById('vote_options').innerHTML = options;
+}
+
+async function vote_submit() {
+    const voteForm = document.getElementById('voteForm');
+    const variants = voteForm.getElementsByTagName("input")
+    for (var i = 0; i < variants.length; i++) {
+        const variant = variants[i];
+        window.console.log(variant.id + " " + variant.checked);
+    }
 }
 
 // Loads nearlib and this contract into window scope.
