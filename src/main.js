@@ -73,13 +73,8 @@ function signedInFlow() {
 
     // Adding an event to change greeting button.
     document.getElementById('vote-button').addEventListener('click', () => {
-        vote_submit();
+        vote();
     });
-}
-
-async function vote() {
-    await window.contract.vote({option:''});
-    show_options();
 }
 
 async function show_options() {
@@ -101,7 +96,10 @@ async function show_options() {
     const options = '<form id="voteForm">' +
         '<fieldset>' +
         '<legend>' +
-        "Dear @" + response.user + " please vote on <br/><b>" + response.question + "</b>" +
+        "Dear @" + response.user + " please vote on <br/>" +
+        '<div class="vote_question">' +
+        response.question +
+        "</div>" +
         '</legend>' +
         variants +
         '</fieldset>' +
@@ -109,13 +107,17 @@ async function show_options() {
     document.getElementById('vote_options').innerHTML = options;
 }
 
-async function vote_submit() {
+async function vote() {
     const voteForm = document.getElementById('voteForm');
-    const variants = voteForm.getElementsByTagName("input")
+    const variants = voteForm.getElementsByTagName("input");
+    const result = { user: window.accountId, answers: []};
     for (var i = 0; i < variants.length; i++) {
         const variant = variants[i];
-        window.console.log(variant.id + " " + variant.checked);
+        const answer = { id: variant.id, checked: variant.checked }
+        //window.console.log(variant.id + " " + variant.checked);
+        result.answers.push(answer);
     }
+    window.contract.vote(result);
 }
 
 // Loads nearlib and this contract into window scope.
