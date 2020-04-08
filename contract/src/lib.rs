@@ -33,90 +33,12 @@ pub struct VotingResults {
     voted: HashMap<String, i32>,
 }
 
-#[cfg(feature = "std")]
-impl BorshSerialize for VotingOption {
-    #[inline]
-    fn serialize<W: Write>(&self, writer: &mut W) -> Result<(), Error> {
-        self.poll_id.serialize(writer)?;
-        self.message.serialize(writer)?;
-        Ok(())
-    }
-}
-
-#[cfg(feature = "std")]
-impl BorshDeserialize for VotingOption {
-    #[inline]
-    fn deserialize<R: Read>(reader: &mut R) -> Result<Self, Error> {
-        let poll_id = String::deserialize(reader)?;
-        let message = String::deserialize(reader)?;
-        Ok(VotingOption {
-            poll_id: poll_id,
-            message: message,
-        })
-    }
-}
-
-#[cfg(feature = "std")]
-impl BorshSerialize for VotingOptions {
-    #[inline]
-    fn serialize<W: Write>(&self, writer: &mut W) -> Result<(), Error> {
-        self.creator.serialize(writer)?;
-        self.poll_id.serialize(writer)?;
-        self.question.serialize(writer)?;
-        self.variants.serialize(writer)?;
-        Ok(())
-    }
-}
-
-#[cfg(feature = "std")]
-impl BorshDeserialize for VotingOptions {
-    #[inline]
-    fn deserialize<R: Read>(reader: &mut R) -> Result<Self, Error> {
-        let creator = String::deserialize(reader)?;
-        let poll_id = String::deserialize(reader)?;
-        let question = String::deserialize(reader)?;
-        let variants = VotingOption::deserialize(reader)?;
-        Ok(VotingOptions {
-            creator: creator,
-            poll_id: poll_id,
-            question: question,
-            variants: variants,
-        })
-    }
-}
-
-#[cfg(feature = "std")]
-impl BorshSerialize for VotingResults {
-    #[inline]
-    fn serialize<W: Write>(&self, writer: &mut W) -> Result<(), Error> {
-        self.id.serialize(writer)?;
-        self.variants.serialize(writer)?;
-        self.voted.serialize(writer)?;
-        Ok(())
-    }
-}
-
-#[cfg(feature = "std")]
-impl BorshDeserialize for VotingResults {
-    #[inline]
-    fn deserialize<R: Read>(reader: &mut R) -> Result<Self, Error> {
-        let poll_id = String::deserialize(reader)?;
-        let variants = <HashMap<String, i32>>::deserialize(reader)?;
-        let voted = <HashMap<String, i32>>::deserialize(reader)?;
-        Ok(VotingResults {
-            poll_id: poll_id,
-            variants: variants,
-            voted: voted,
-        })
-    }
-}
-
 #[near_bindgen]
 #[derive(Default, BorshDeserialize, BorshSerialize)]
 pub struct Voting {
-    // Map of voting id to voting options.
-    votings: HashMap<String, VotingOptions>,
-    // Map of voting id to voting results.
+    // Map of poll id to voting options.
+    polls: HashMap<String, VotingOptions>,
+    // Map of poll id to voting results.
     results: HashMap<String, VotingResults>,
 }
 
@@ -168,7 +90,7 @@ impl Voting {
         };
     }
 
-    pub fn create_voting(&mut self, question: String, variants: HashMap<String, String>) -> String {
+    pub fn create_poll(&mut self, question: String, variants: HashMap<String, String>) -> String {
         let creator_account_id = env::signer_account_id();
         let owner_account_id = env::current_account_id();
         let poll_id = bs58::encode(env::sha256(&env::random_seed())).into_string();
@@ -181,7 +103,7 @@ impl Voting {
                 message: v.to_string(),
             })
         }
-        self.votings.insert(
+        self.polls.insert(
             result.clone(),
             VotingOptions {
                 creator: creator_account_id,
@@ -194,7 +116,7 @@ impl Voting {
     }
 
     pub fn show_poll(&self, poll_id: String) -> VotingOptions {
-        match self.votings.get(&poll_id) {
+        match self.polls.get(&poll_id) {
             Some(options) => {
                 env::log(b"Known voting.");
                 options.clone()
@@ -218,6 +140,10 @@ impl Voting {
                 }
             }
         }
+    }
+
+    pub fn ping(&self) -> String {
+        "HELLO".to_string()
     }
 }
 

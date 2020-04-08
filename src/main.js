@@ -31,7 +31,7 @@ async function InitContract() {
         // View methods are read only. They don't modify the state, but usually return some value.
         viewMethods: ['show_poll'],
         // Change methods can modify the state. But you don't receive the returned value when called.
-        changeMethods: ['vote', 'create_poll'],
+        changeMethods: ['vote', 'create_poll', 'ping'],
         // Sender is the account ID to initialize transactions.
         sender: window.accountId,
     });
@@ -111,7 +111,7 @@ async function show_poll() {
 }
 
 async function create_poll() {
-    alert("Create poll");
+    window.console.log(await window.contract.ping())
 }
 
 async function vote() {
