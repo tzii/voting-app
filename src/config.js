@@ -1,4 +1,4 @@
-const CONTRACT_NAME = process.env.CONTRACT_NAME ||'votingapp.nikolay';
+const CONTRACT_NAME = process.env.CONTRACT_NAME ||'votingapp1.nikolay';
 
 function getConfig(env) {
     switch (env) {

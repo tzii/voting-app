@@ -81,6 +81,7 @@ impl Voting {
                         }
                     }
                 }
+                env::state_write(self);
                 return true;
             }
             None => {
@@ -91,11 +92,11 @@ impl Voting {
     }
 
     pub fn create_poll(&mut self, question: String, variants: HashMap<String, String>) -> String {
+        env::log(format!("create_poll for {}", question).as_bytes());
         let creator_account_id = env::signer_account_id();
         let owner_account_id = env::current_account_id();
         let poll_id = bs58::encode(env::sha256(&env::random_seed())).into_string();
-        let result = format!("owner={}&voting={}", owner_account_id, poll_id);
-        //env::log(format!("new voting id is {}", poll_id).as_bytes());
+        let result = format!("owner={}&poll_id={}", owner_account_id, poll_id);
         let mut variants_vec = <Vec<VotingOption>>::new();
         for (k, v) in variants.iter() {
             variants_vec.push(VotingOption {
@@ -112,6 +113,7 @@ impl Voting {
                 variants: variants_vec,
             },
         );
+        env::state_write(self);
         return result;
     }
 
@@ -122,7 +124,7 @@ impl Voting {
                 options.clone()
             }
             None => {
-                env::log(b"Unknown voting.");
+                env::log(b"Unknown voting {}", poll_id));
                 VotingOptions {
                     creator: "Bogus".to_string(),
                     poll_id: "000000000000".to_string(),
@@ -134,7 +136,7 @@ impl Voting {
                         },
                         VotingOption {
                             option_id: "variant2".to_string(),
-                            message: "Variant2 2".to_string(),
+                            message: "Variant 2".to_string(),
                         },
                     ],
                 }
@@ -143,7 +145,7 @@ impl Voting {
     }
 
     pub fn ping(&self) -> String {
-        "HELLO".to_string()
+        "PONG".to_string()
     }
 }
 

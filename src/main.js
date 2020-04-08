@@ -20,18 +20,20 @@ async function InitContract() {
     // Getting the Account ID. If unauthorized yet, it's just empty string.
     window.accountId = window.walletAccount.getAccountId();
 
+    const query = new URLSearchParams(window.location.search);
+    const pollId = query.get('poll_id');
     window.voteState = {
         voteOwner: window.accountId,
-        pollId: 'UNDEFINED'
+        pollId: pollId
     };
 
     // Initializing our contract APIs by contract name and configuration.
     window.contract = await near.loadContract(nearConfig.contractName, { // eslint-disable-line require-atomic-updates
         // NOTE: This configuration only needed while NEAR is still in development
         // View methods are read only. They don't modify the state, but usually return some value.
-        viewMethods: ['show_poll'],
+        viewMethods: ['show_poll', 'ping'],
         // Change methods can modify the state. But you don't receive the returned value when called.
-        changeMethods: ['vote', 'create_poll', 'ping'],
+        changeMethods: ['vote', 'create_poll'],
         // Sender is the account ID to initialize transactions.
         sender: window.accountId,
     });
@@ -83,23 +85,33 @@ function signedInFlow() {
 
     // Adding an event to create vote.
     document.getElementById('create-poll-button').addEventListener('click', () => {
+        show_create_poll();
+    });
+
+    document.getElementById('create-poll-submit').addEventListener('click', () => {
         create_poll();
+    });
+
+    document.getElementById('create-poll-submit').addEventListener('click', () => {
+        // TODO: clear state?
+        hide_create_poll();
     });
 }
 
 async function show_poll() {
+    if (!window.voteState.pollId) return;
+    window.console.log(window.voteState.pollId);
     const response = await window.contract.show_poll( { poll_id: window.voteState.pollId } );
-    window.console.log(response);
     var variants = '';
-    // TODO: maybe use older ES syntax?
-    for (const [key, value] of Object.entries(response.variants)) {
-        variants += '<input type="checkbox" id="' + key +'" value="' + key + '">' +
-           '<label for="' + name + '">' + value + '</label><br>';
+    for (var index = 0; index < response.variants.length; index++) {
+        const v = response.variants[index];
+        variants += '<input type="checkbox" id="' + v.option_id +'" value="' + v.option_id + '">' +
+           '<label for="' + v.option_id + '">' + v.message + '</label><br>';
     }
-    const options = '<form id="voteForm">' +
+    const options = '<form id="vote-form">' +
         '<fieldset>' +
         '<legend>' +
-        "Dear @" + response.user + " please vote on <br/>" +
+        "Dear @" + window.accountId + " please vote on poll by @" + response.creator + " <br/>" +
         '<div class="vote_question">' +
         response.question +
         "</div>" +
@@ -111,23 +123,44 @@ async function show_poll() {
 }
 
 async function create_poll() {
-    window.console.log(await window.contract.ping())
+    window.console.log("create_poll called");
+    const question = document.getElementById("new-poll-question").value;
+    const v1 = document.getElementById("new-poll-v1").value;
+    const v2 = document.getElementById("new-poll-v2").value;
+    const v3 = document.getElementById("new-poll-v3").value;
+    window.console.log({question: question, variants: { v1: v1, v2: v2, v3: v3}});
+    const poll = await window.contract.create_poll({question: question, variants: { v1: v1, v2: v2, v3: v3}});
+    window.console.log("poll is " + poll);
+    const base = document.baseURI;
+    const poll_address = base + poll;
+    document.getElementById("new-poll-address").innerHTML = '<a href="' + poll_address + '">' + poll_address + '</a>';
+    alert("poll is at " + poll_address);
+    hide_create_poll()
 }
 
 async function vote() {
-    const voteForm = document.getElementById('voteForm');
+    const voteForm = document.getElementById('vote-form');
     const variants = voteForm.getElementsByTagName('input');
-    const result = { user: window.accountId, answers: []};
+    const votes = {};
     for (var i = 0; i < variants.length; i++) {
         const variant = variants[i];
-        const answer = { id: variant.id, checked: variant.checked ? 1 : 0 }
-        //window.console.log(variant.id + " " + variant.checked);
-        result.answers.push(answer);
+        votes[variant.id] = variant.checked ? 1 : 0 ;
     }
-    window.contract.vote({ poll_id: window.voteState.pollId, result: result } );
+    window.contract.vote({poll_id: window.voteState.pollId, votes: votes});
 }
 
 // Loads nearlib and this contract into window scope.
 window.nearInitPromise = InitContract()
     .then(doWork)
     .catch(console.error);
+
+
+function show_create_poll() {
+    const newPollForm = document.getElementById('new-poll-form');
+    newPollForm.style.display = 'block';
+}
+
+function hide_create_poll() {
+    const newPollForm = document.getElementById('new-poll-form');
+    newPollForm.style.display = 'none';
+}
