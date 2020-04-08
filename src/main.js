@@ -31,7 +31,7 @@ async function InitContract() {
     window.contract = await near.loadContract(nearConfig.contractName, { // eslint-disable-line require-atomic-updates
         // NOTE: This configuration only needed while NEAR is still in development
         // View methods are read only. They don't modify the state, but usually return some value.
-        viewMethods: ['show_poll', 'ping'],
+        viewMethods: ['show_poll', 'show_results', 'ping'],
         // Change methods can modify the state. But you don't receive the returned value when called.
         changeMethods: ['vote', 'create_poll'],
         // Sender is the account ID to initialize transactions.
@@ -78,9 +78,12 @@ function signedInFlow() {
         window.location.replace(window.location.origin + window.location.pathname);
     });
 
-    // Adding an event to change greeting button.
     document.getElementById('vote-button').addEventListener('click', () => {
         vote();
+    });
+
+    document.getElementById('show-results-button').addEventListener('click', () => {
+        show_vote_results();
     });
 
     // Adding an event to create vote.
@@ -92,7 +95,7 @@ function signedInFlow() {
         create_poll();
     });
 
-    document.getElementById('create-poll-submit').addEventListener('click', () => {
+    document.getElementById('create-poll-cancel').addEventListener('click', () => {
         // TODO: clear state?
         hide_create_poll();
     });
@@ -102,6 +105,10 @@ async function show_poll() {
     if (!window.voteState.pollId) return;
     window.console.log(window.voteState.pollId);
     const response = await window.contract.show_poll( { poll_id: window.voteState.pollId } );
+    if (response.pollId == 'INVALID') {
+        alert('No such poll!');
+        return;
+    }
     var variants = '';
     for (var index = 0; index < response.variants.length; index++) {
         const v = response.variants[index];
@@ -120,21 +127,31 @@ async function show_poll() {
         '</fieldset>' +
         '</form>';
     document.getElementById('vote_options').innerHTML = options;
+
+    document.getElementById('vote-button').style.display = 'inline';
+    document.getElementById('show-results-button').style.display = 'inline';
+}
+
+async function show_vote_results() {
+    if (!window.voteState.pollId) return;
+    const response = await window.contract.show_results({ poll_id: window.voteState.pollId } );
+    if (response.pollId == 'INVALID') {
+        alert('No such poll!');
+        return;
+    }
+    window.console.log(response);
 }
 
 async function create_poll() {
-    window.console.log("create_poll called");
     const question = document.getElementById("new-poll-question").value;
     const v1 = document.getElementById("new-poll-v1").value;
     const v2 = document.getElementById("new-poll-v2").value;
     const v3 = document.getElementById("new-poll-v3").value;
-    window.console.log({question: question, variants: { v1: v1, v2: v2, v3: v3}});
     const poll = await window.contract.create_poll({question: question, variants: { v1: v1, v2: v2, v3: v3}});
     window.console.log("poll is " + poll);
-    const base = document.baseURI;
+    const base = document.documentURI.substr(0, document.documentURI.lastIndexOf('/'));
     const poll_address = base + poll;
-    document.getElementById("new-poll-address").innerHTML = '<a href="' + poll_address + '">' + poll_address + '</a>';
-    alert("poll is at " + poll_address);
+    document.getElementById("new-poll-address").innerHTML = 'Newly created poll at <a href="' + poll_address + '">' + poll_address + '</a>';
     hide_create_poll()
 }
 

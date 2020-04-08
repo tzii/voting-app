@@ -81,7 +81,6 @@ impl Voting {
                         }
                     }
                 }
-                env::state_write(self);
                 return true;
             }
             None => {
@@ -92,11 +91,18 @@ impl Voting {
     }
 
     pub fn create_poll(&mut self, question: String, variants: HashMap<String, String>) -> String {
-        env::log(format!("create_poll for {}", question).as_bytes());
+        env::log(
+            format!(
+                "create_poll for {} currently have {}",
+                question,
+                self.polls.len()
+            )
+            .as_bytes(),
+        );
         let creator_account_id = env::signer_account_id();
         let owner_account_id = env::current_account_id();
         let poll_id = bs58::encode(env::sha256(&env::random_seed())).into_string();
-        let result = format!("owner={}&poll_id={}", owner_account_id, poll_id);
+        let result = format!("/?owner={}&poll_id={}", owner_account_id, poll_id);
         let mut variants_vec = <Vec<VotingOption>>::new();
         for (k, v) in variants.iter() {
             variants_vec.push(VotingOption {
@@ -105,29 +111,35 @@ impl Voting {
             })
         }
         self.polls.insert(
-            result.clone(),
+            poll_id.clone(),
             VotingOptions {
                 creator: creator_account_id,
-                poll_id: poll_id,
+                poll_id: poll_id.clone(),
                 question: question,
                 variants: variants_vec,
             },
         );
-        env::state_write(self);
+        self.results.insert(
+            poll_id.clone(),
+            VotingResults {
+                poll_id: poll_id,
+                variants: HashMap::new(),
+                voted: HashMap::new(),
+            },
+        );
         return result;
     }
 
     pub fn show_poll(&self, poll_id: String) -> VotingOptions {
         match self.polls.get(&poll_id) {
             Some(options) => {
-                env::log(b"Known voting.");
                 options.clone()
             }
             None => {
-                env::log(b"Unknown voting {}", poll_id));
+                env::log(format!("Unknown voting {}", poll_id).as_bytes());
                 VotingOptions {
                     creator: "Bogus".to_string(),
-                    poll_id: "000000000000".to_string(),
+                    poll_id: "INVALID".to_string(),
                     question: "Bogus question".to_string(),
                     variants: vec![
                         VotingOption {
@@ -140,6 +152,22 @@ impl Voting {
                         },
                     ],
                 }
+            }
+        }
+    }
+
+    pub fn show_results(&self, poll_id: String) -> VotingResults {
+        match self.results.get(&poll_id) {
+            Some(results) => {
+                return results.clone();
+            }
+            None => {
+                env::log(format!("no voting known for {}", poll_id).as_bytes());
+                return VotingResults {
+                    poll_id: "INVALID".to_string(),
+                    variants: HashMap::new(),
+                    voted: HashMap::new()
+                };
             }
         }
     }
@@ -177,23 +205,11 @@ mod tests {
     }
 
     #[test]
-    fn get_options() {
+    fn show_poll() {
         let context = get_context(vec![], false);
         testing_env!(context);
         let contract = Voting::default();
         let options = contract.show_poll("default".to_string());
         assert_eq!("Bogus".to_string(), options.creator);
     }
-
-    /*
-    #[test]
-    fn get_nonexistent_message() {
-        let context = get_context(vec![], true);
-        testing_env!(context);
-        let contract = Welcome::default();
-        assert_eq!(
-            "Hello francis.near".to_string(),
-            contract.welcome("francis.near".to_string()).text
-        );
-    } */
 }
