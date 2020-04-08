@@ -22,16 +22,16 @@ async function InitContract() {
 
     window.voteState = {
         voteOwner: window.accountId,
-        voteId: ''
+        pollId: 'UNDEFINED'
     };
 
     // Initializing our contract APIs by contract name and configuration.
     window.contract = await near.loadContract(nearConfig.contractName, { // eslint-disable-line require-atomic-updates
         // NOTE: This configuration only needed while NEAR is still in development
         // View methods are read only. They don't modify the state, but usually return some value.
-        viewMethods: ['show_options'],
+        viewMethods: ['show_poll'],
         // Change methods can modify the state. But you don't receive the returned value when called.
-        changeMethods: ['vote'],
+        changeMethods: ['vote', 'create_poll'],
         // Sender is the account ID to initialize transactions.
         sender: window.accountId,
     });
@@ -67,7 +67,7 @@ function signedInFlow() {
     // Displaying the signed in flow container.
     document.getElementById('signed-in-flow').classList.remove('d-none');
 
-    show_options();
+    show_poll();
 
     // Adding an event to a sign-out button.
     document.getElementById('sign-out-button').addEventListener('click', () => {
@@ -82,13 +82,14 @@ function signedInFlow() {
     });
 
     // Adding an event to create vote.
-    document.getElementById('create-vote-button').addEventListener('click', () => {
-        create_vote();
+    document.getElementById('create-poll-button').addEventListener('click', () => {
+        create_poll();
     });
 }
 
-async function show_options() {
-    const response = await window.contract.show_options({ vote_owner: voteState.voteOwner, vote_id:window.voteState.voteId});
+async function show_poll() {
+    const response = await window.contract.show_poll( { poll_id: window.voteState.pollId } );
+    window.console.log(response);
     var variants = '';
     // TODO: maybe use older ES syntax?
     for (const [key, value] of Object.entries(response.variants)) {
@@ -109,17 +110,21 @@ async function show_options() {
     document.getElementById('vote_options').innerHTML = options;
 }
 
+async function create_poll() {
+    alert("Create poll");
+}
+
 async function vote() {
     const voteForm = document.getElementById('voteForm');
-    const variants = voteForm.getElementsByTagName("input");
+    const variants = voteForm.getElementsByTagName('input');
     const result = { user: window.accountId, answers: []};
     for (var i = 0; i < variants.length; i++) {
         const variant = variants[i];
-        const answer = { id: variant.id, checked: variant.checked }
+        const answer = { id: variant.id, checked: variant.checked ? 1 : 0 }
         //window.console.log(variant.id + " " + variant.checked);
         result.answers.push(answer);
     }
-    window.contract.vote(result);
+    window.contract.vote({ poll_id: window.voteState.pollId, result: result } );
 }
 
 // Loads nearlib and this contract into window scope.

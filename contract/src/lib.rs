@@ -17,7 +17,7 @@ pub struct VotingOptions {
     // Author of the vote (account id).
     creator: String,
     // Unique voting id.
-    voting_id: String,
+    poll_id: String,
     // Question voted on.
     question: String,
     variants: Vec<VotingOption>,
@@ -25,8 +25,8 @@ pub struct VotingOptions {
 
 #[derive(Serialize, Deserialize, Clone, BorshDeserialize, BorshSerialize)]
 pub struct VotingResults {
-    // Unique voting id.
-    voting_id: String,
+    // Unique poll id.
+    poll_id: String,
     // Map of option id to the number of votes.
     variants: HashMap<String, i32>,
     // Map of voters who already voted.
@@ -37,7 +37,7 @@ pub struct VotingResults {
 impl BorshSerialize for VotingOption {
     #[inline]
     fn serialize<W: Write>(&self, writer: &mut W) -> Result<(), Error> {
-        self.voting_id.serialize(writer)?;
+        self.poll_id.serialize(writer)?;
         self.message.serialize(writer)?;
         Ok(())
     }
@@ -47,10 +47,10 @@ impl BorshSerialize for VotingOption {
 impl BorshDeserialize for VotingOption {
     #[inline]
     fn deserialize<R: Read>(reader: &mut R) -> Result<Self, Error> {
-        let voting_id = String::deserialize(reader)?;
+        let poll_id = String::deserialize(reader)?;
         let message = String::deserialize(reader)?;
         Ok(VotingOption {
-            voting_id: voting_id,
+            poll_id: poll_id,
             message: message,
         })
     }
@@ -61,7 +61,7 @@ impl BorshSerialize for VotingOptions {
     #[inline]
     fn serialize<W: Write>(&self, writer: &mut W) -> Result<(), Error> {
         self.creator.serialize(writer)?;
-        self.voting_id.serialize(writer)?;
+        self.poll_id.serialize(writer)?;
         self.question.serialize(writer)?;
         self.variants.serialize(writer)?;
         Ok(())
@@ -73,12 +73,12 @@ impl BorshDeserialize for VotingOptions {
     #[inline]
     fn deserialize<R: Read>(reader: &mut R) -> Result<Self, Error> {
         let creator = String::deserialize(reader)?;
-        let voting_id = String::deserialize(reader)?;
+        let poll_id = String::deserialize(reader)?;
         let question = String::deserialize(reader)?;
         let variants = VotingOption::deserialize(reader)?;
         Ok(VotingOptions {
             creator: creator,
-            voting_id: voting_id,
+            poll_id: poll_id,
             question: question,
             variants: variants,
         })
@@ -100,11 +100,11 @@ impl BorshSerialize for VotingResults {
 impl BorshDeserialize for VotingResults {
     #[inline]
     fn deserialize<R: Read>(reader: &mut R) -> Result<Self, Error> {
-        let voting_id = String::deserialize(reader)?;
+        let poll_id = String::deserialize(reader)?;
         let variants = <HashMap<String, i32>>::deserialize(reader)?;
         let voted = <HashMap<String, i32>>::deserialize(reader)?;
         Ok(VotingResults {
-            voting_id: voting_id,
+            poll_id: poll_id,
             variants: variants,
             voted: voted,
         })
@@ -122,21 +122,23 @@ pub struct Voting {
 
 #[near_bindgen]
 impl Voting {
-    pub fn vote(&mut self, voting_id: String, vote: String) -> bool {
+    pub fn vote(&mut self, poll_id: String, votes: HashMap<String, i32>) -> bool {
         let voter_contract = env::signer_account_id();
         let owner_contract = env::current_account_id();
         env::log(
-            format!("{} is voting on {} owner is {}", voter_contract, voting_id, owner_contract)
-                .as_bytes(),
+            format!(
+                "{} is voting on {} owner is {}",
+                voter_contract, poll_id, owner_contract
+            )
+            .as_bytes(),
         );
         // Now we need to find a contract to vote for.
-        match self.results.get_mut(&voting_id) {
+        match self.results.get_mut(&poll_id) {
             Some(results) => {
                 match results.voted.get(&voter_contract) {
                     Some(_) => {
                         env::log(
-                            format!("{} already voted in {}", voter_contract, voting_id)
-                                .as_bytes(),
+                            format!("{} already voted in {}", voter_contract, poll_id).as_bytes(),
                         );
                         return false;
                     }
@@ -144,18 +146,23 @@ impl Voting {
                         results.voted.insert(voter_contract, 1);
                     }
                 }
-                match results.variants.get_mut(&vote) {
-                    Some(result) => {
-                        *result = *result + 1;
+                for (vote, checked) in votes.iter() {
+                    if *checked == 0 {
+                        continue;
                     }
-                    None => {
-                        results.variants.insert(vote, 1);
+                    match results.variants.get_mut(vote) {
+                        Some(result) => {
+                            *result = *result + 1;
+                        }
+                        None => {
+                            results.variants.insert(vote.to_string(), 1);
+                        }
                     }
                 }
                 return true;
             }
             None => {
-                env::log(format!("no voting known for {}", voting_id).as_bytes());
+                env::log(format!("no voting known for {}", poll_id).as_bytes());
                 return false;
             }
         };
@@ -164,9 +171,9 @@ impl Voting {
     pub fn create_voting(&mut self, question: String, variants: HashMap<String, String>) -> String {
         let creator_account_id = env::signer_account_id();
         let owner_account_id = env::current_account_id();
-        let voting_id = bs58::encode(env::sha256(&env::random_seed())).into_string();
-        let result = format!("owner={}&voting={}", owner_account_id, voting_id);
-        //env::log(format!("new voting id is {}", voting_id).as_bytes());
+        let poll_id = bs58::encode(env::sha256(&env::random_seed())).into_string();
+        let result = format!("owner={}&voting={}", owner_account_id, poll_id);
+        //env::log(format!("new voting id is {}", poll_id).as_bytes());
         let mut variants_vec = <Vec<VotingOption>>::new();
         for (k, v) in variants.iter() {
             variants_vec.push(VotingOption {
@@ -178,7 +185,7 @@ impl Voting {
             result.clone(),
             VotingOptions {
                 creator: creator_account_id,
-                voting_id: voting_id,
+                poll_id: poll_id,
                 question: question,
                 variants: variants_vec,
             },
@@ -186,8 +193,8 @@ impl Voting {
         return result;
     }
 
-    pub fn show_options(&self, voting_id: String) -> VotingOptions {
-        match self.votings.get(&voting_id) {
+    pub fn show_poll(&self, poll_id: String) -> VotingOptions {
+        match self.votings.get(&poll_id) {
             Some(options) => {
                 env::log(b"Known voting.");
                 options.clone()
@@ -196,7 +203,7 @@ impl Voting {
                 env::log(b"Unknown voting.");
                 VotingOptions {
                     creator: "Bogus".to_string(),
-                    voting_id: "000000000000".to_string(),
+                    poll_id: "000000000000".to_string(),
                     question: "Bogus question".to_string(),
                     variants: vec![
                         VotingOption {
@@ -214,7 +221,6 @@ impl Voting {
     }
 }
 
-/*
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(test)]
 mod tests {
@@ -243,17 +249,15 @@ mod tests {
     }
 
     #[test]
-    fn set_get_message() {
+    fn get_options() {
         let context = get_context(vec![], false);
         testing_env!(context);
-        let mut contract = Voting::default();
-        contract.set_greeting("howdy".to_string());
-        assert_eq!(
-            "howdy bob_near".to_string(),
-            contract.welcome("bob_near".to_string()).text
-        );
+        let contract = Voting::default();
+        let options = contract.show_poll("default".to_string());
+        assert_eq!("Bogus".to_string(), options.creator);
     }
 
+    /*
     #[test]
     fn get_nonexistent_message() {
         let context = get_context(vec![], true);
@@ -263,6 +267,5 @@ mod tests {
             "Hello francis.near".to_string(),
             contract.welcome("francis.near".to_string()).text
         );
-    }
+    } */
 }
-*/
