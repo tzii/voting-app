@@ -3,6 +3,8 @@ import "regenerator-runtime/runtime";
 import * as nearlib from "nearlib"
 import getConfig from "./config"
 
+const BN = require('bn.js');
+
 let nearConfig = getConfig(process.env.NODE_ENV || "development");
 window.nearConfig = nearConfig;
 
@@ -96,7 +98,7 @@ function signedInFlow() {
     });
 
     document.getElementById('create-poll-cancel').addEventListener('click', () => {
-        // TODO: clear state?
+        // TODO: clear state in form?
         hide_create_poll();
     });
 }
@@ -126,20 +128,31 @@ async function show_poll() {
         variants +
         '</fieldset>' +
         '</form>';
-    document.getElementById('vote_options').innerHTML = options;
+    document.getElementById('vote-options').innerHTML = options;
 
     document.getElementById('vote-button').style.display = 'inline';
     document.getElementById('show-results-button').style.display = 'inline';
 }
 
+function format_variant(poll, results, index) {
+    const voted = results.variants[poll.variants[index].option_id];
+    return poll.variants[index].message + ' -> ' + (voted ? voted : 0);
+}
+
 async function show_vote_results() {
     if (!window.voteState.pollId) return;
     const response = await window.contract.show_results({ poll_id: window.voteState.pollId } );
-    if (response.pollId == 'INVALID') {
-        alert('No such poll!');
+    if (!response) {
         return;
     }
-    window.console.log(response);
+    document.getElementById('show-poll-results').style.display = 'block';
+    document.getElementById('result-poll-question').innerText = response.poll.question;
+    document.getElementById('result-poll-v1').innerText = format_variant(response.poll, response.results, 0);
+    document.getElementById('result-poll-v2').innerText = format_variant(response.poll, response.results, 1);
+    document.getElementById('result-poll-v3').innerText = format_variant(response.poll, response.results, 2);
+    const voted = Object.keys(response.results.voted).join(" ")
+    document.getElementById('result-poll-voted').innerText = voted;
+    document.getElementById('vote-options').style.display = 'none';
 }
 
 async function create_poll() {
@@ -147,7 +160,9 @@ async function create_poll() {
     const v1 = document.getElementById("new-poll-v1").value;
     const v2 = document.getElementById("new-poll-v2").value;
     const v3 = document.getElementById("new-poll-v3").value;
-    const poll = await window.contract.create_poll({question: question, variants: { v1: v1, v2: v2, v3: v3}});
+    // Creation of poll and voting need more gas to execute.
+    const poll = await window.contract.create_poll({question: question, variants: { v1: v1, v2: v2, v3: v3}},
+        new BN(10000000000000));
     window.console.log("poll is " + poll);
     const base = document.documentURI.substr(0, document.documentURI.lastIndexOf('/'));
     const poll_address = base + poll;
@@ -163,7 +178,10 @@ async function vote() {
         const variant = variants[i];
         votes[variant.id] = variant.checked ? 1 : 0 ;
     }
-    window.contract.vote({poll_id: window.voteState.pollId, votes: votes});
+    // Creation of poll and voting needs more gas to execute.
+    const result = await window.contract.vote({poll_id: window.voteState.pollId, votes: votes},
+        new BN(10000000000000));
+    alert("Your voice is " + (result ? "counted" : "not counted"));
 }
 
 // Loads nearlib and this contract into window scope.

@@ -63,6 +63,11 @@
       color: #5acf8b;
       text-shadow: 1px 1px #D1CCBD;
     }
+    .voted {
+      font-size: 1.0rem;
+      color: #ce501e;
+      text-shadow: 1px 1px #D1CCBD;
+    }
   </style>
 </head>
 <body class="App-header">
@@ -72,18 +77,25 @@
         <p><span role="img" aria-label="fish">🐟</span> NEAR protocol is a new blockchain focused on developer productivity and useability!<span role="img" aria-label="fish">🐟</span></p>
         <p><span role="img" aria-label="chain">⛓</span> To vote select one of the options below.</p>
         <img src="assets/near.svg" class="App-logo margin-logo" alt="logo" />
-        <div id="vote_options" class="vote_options"></div>
+        <div id="vote-options" class="vote_options"></div>
       </div>
       <div id="signed-out-flow" class="d-none">
         <button id="sign-in-button" >Sign-in with NEAR</button>
       </div>
       <div id="new-poll-form" style="display: none;">
-        <input type="text" id="new-poll-question"><label for="new-poll-question">Poll question</label><br/>
-        <input type="text" id="new-poll-v1"><label for="new-poll-v1">First variant</label><br/>
-        <input type="text" id="new-poll-v2"><label for="new-poll-v2">Second variant</label><br/>
-        <input type="text" id="new-poll-v3"><label for="new-poll-v3">Third variant</label><br/>
+        <label for="new-poll-question">Poll question</label><input type="text" id="new-poll-question"><br/>
+        <label for="new-poll-v1">First variant</label><input type="text" id="new-poll-v1"><br/>
+        <label for="new-poll-v2">Second variant</label><input type="text" id="new-poll-v2"><br/>
+        <label for="new-poll-v3">Third variant</label><input type="text" id="new-poll-v3"><br/>
         <button id="create-poll-submit">Submit</button>
         <button id="create-poll-cancel">Cancel</button>
+      </div>
+      <div id="show-poll-results" style="display: none;">
+        Question: <div id="result-poll-question" class="vote_question"></div>
+        Variant 1: <div id="result-poll-v1" class="vote_options"></div>
+        Variant 2: <div id="result-poll-v2" class="vote_options"></div>
+        Variant 3: <div id="result-poll-v3" class="vote_options"></div>
+        Voted: <div id="result-poll-voted" class="voted"></div>
       </div>
       <div id="signed-in-flow" class="d-none">
           <button id="create-poll-button">Create poll</button>

@@ -33,6 +33,12 @@ pub struct VotingResults {
     voted: HashMap<String, i32>,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct VotingStats {
+    poll: VotingOptions,
+    results: VotingResults,
+}
+
 #[near_bindgen]
 #[derive(Default, BorshDeserialize, BorshSerialize)]
 pub struct Voting {
@@ -84,7 +90,7 @@ impl Voting {
                 return true;
             }
             None => {
-                env::log(format!("no voting known for {}", poll_id).as_bytes());
+                env::log(format!("no poll known for {}", poll_id).as_bytes());
                 return false;
             }
         };
@@ -132,43 +138,32 @@ impl Voting {
 
     pub fn show_poll(&self, poll_id: String) -> VotingOptions {
         match self.polls.get(&poll_id) {
-            Some(options) => {
-                options.clone()
-            }
+            Some(options) => options.clone(),
             None => {
                 env::log(format!("Unknown voting {}", poll_id).as_bytes());
                 VotingOptions {
                     creator: "Bogus".to_string(),
                     poll_id: "INVALID".to_string(),
                     question: "Bogus question".to_string(),
-                    variants: vec![
-                        VotingOption {
-                            option_id: "variant1".to_string(),
-                            message: "Variant 1".to_string(),
-                        },
-                        VotingOption {
-                            option_id: "variant2".to_string(),
-                            message: "Variant 2".to_string(),
-                        },
-                    ],
+                    variants: vec![VotingOption {
+                        option_id: "variant".to_string(),
+                        message: "Variant".to_string(),
+                    }],
                 }
             }
         }
     }
 
-    pub fn show_results(&self, poll_id: String) -> VotingResults {
-        match self.results.get(&poll_id) {
-            Some(results) => {
-                return results.clone();
-            }
-            None => {
-                env::log(format!("no voting known for {}", poll_id).as_bytes());
-                return VotingResults {
-                    poll_id: "INVALID".to_string(),
-                    variants: HashMap::new(),
-                    voted: HashMap::new()
-                };
-            }
+    pub fn show_results(&self, poll_id: String) -> Option<VotingStats> {
+        match self.polls.get(&poll_id) {
+            Some(poll) => match self.results.get(&poll_id) {
+                Some(results) => Some(VotingStats {
+                    results: results.clone(),
+                    poll: poll.clone(),
+                }),
+                None => None,
+            },
+            None => None,
         }
     }
 
