@@ -8,9 +8,9 @@
 <br />
 <br />
 
-## Template for NEAR dapps
+## NEAR Voting Application
 ### Requirements
-##### IMPORTANT: Make sure you have the latest version of NEAR Shell and Node Version > 10.x 
+##### IMPORTANT: Make sure you have the latest version of NEAR Shell and Node Version > 10.x
 
 1. [Node.js](https://nodejs.org/en/download/package-manager/)
 2. (optional) near-shell

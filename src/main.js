@@ -20,6 +20,11 @@ async function InitContract() {
     // Getting the Account ID. If unauthorized yet, it's just empty string.
     window.accountId = window.walletAccount.getAccountId();
 
+    window.voteState = {
+        voteOwner: window.accountId,
+        voteId: ''
+    };
+
     // Initializing our contract APIs by contract name and configuration.
     window.contract = await near.loadContract(nearConfig.contractName, { // eslint-disable-line require-atomic-updates
         // NOTE: This configuration only needed while NEAR is still in development
@@ -75,18 +80,15 @@ function signedInFlow() {
     document.getElementById('vote-button').addEventListener('click', () => {
         vote();
     });
+
+    // Adding an event to create vote.
+    document.getElementById('create-vote-button').addEventListener('click', () => {
+        create_vote();
+    });
 }
 
 async function show_options() {
-    const response = await window.contract.show_options({account_id:window.accountId});
-    /*const response = {
-        user: "Nik",
-        question: "What is your transport?",
-        variants: {
-            "bike": "Bike",
-            "car": "Car"
-        }
-    }; */
+    const response = await window.contract.show_options({ vote_owner: voteState.voteOwner, vote_id:window.voteState.voteId});
     var variants = '';
     // TODO: maybe use older ES syntax?
     for (const [key, value] of Object.entries(response.variants)) {

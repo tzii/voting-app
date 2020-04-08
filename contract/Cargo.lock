@@ -286,6 +286,7 @@ name = "status-message"
 version = "0.1.0"
 dependencies = [
  "borsh 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bs58 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "near-bindgen 0.3.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.101 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.40 (git+https://github.com/nearprotocol/json?rev=1f5779f3b0bd3d2a4b0b975abc46f3d3fe873331)",
