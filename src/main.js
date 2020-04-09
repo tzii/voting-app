@@ -81,7 +81,12 @@ function signedInFlow() {
     });
 
     document.getElementById('vote-button').addEventListener('click', () => {
-        vote();
+        const voteOptions = document.getElementById('vote-options');
+        if (!voteOptions || voteOptions.style.display == 'none') {
+            show_poll();
+        } else {
+            vote();
+        }
     });
 
     document.getElementById('show-results-button').addEventListener('click', () => {
@@ -107,7 +112,7 @@ async function show_poll() {
     if (!window.voteState.pollId) return;
     const response = await window.contract.show_poll( { poll_id: window.voteState.pollId } );
     if (!response) {
-        status_message('No such poll ' + window.voteState.pollId );
+        status_message('No such poll ' + window.voteState.pollId);
         return;
     }
     var variants = '';
@@ -128,7 +133,8 @@ async function show_poll() {
         '</fieldset>' +
         '</form>';
     document.getElementById('vote-options').innerHTML = options;
-
+    document.getElementById('vote-options').style.display = 'inline';
+    hide_poll_results();
     document.getElementById('vote-button').style.display = 'inline';
     document.getElementById('show-results-button').style.display = 'inline';
 }
