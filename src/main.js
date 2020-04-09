@@ -105,10 +105,9 @@ function signedInFlow() {
 
 async function show_poll() {
     if (!window.voteState.pollId) return;
-    window.console.log(window.voteState.pollId);
     const response = await window.contract.show_poll( { poll_id: window.voteState.pollId } );
-    if (response.pollId == 'INVALID') {
-        alert('No such poll!');
+    if (!response) {
+        status_message('No such poll ' + window.voteState.pollId );
         return;
     }
     var variants = '';
@@ -141,11 +140,13 @@ function format_variant(poll, results, index) {
 
 async function show_vote_results() {
     if (!window.voteState.pollId) return;
+    status_message("Talking to the blockchain...");
     const response = await window.contract.show_results({ poll_id: window.voteState.pollId } );
+    status_message("Ready!");
     if (!response) {
         return;
     }
-    document.getElementById('show-poll-results').style.display = 'block';
+    show_poll_results();
     document.getElementById('result-poll-question').innerText = response.poll.question;
     document.getElementById('result-poll-v1').innerText = format_variant(response.poll, response.results, 0);
     document.getElementById('result-poll-v2').innerText = format_variant(response.poll, response.results, 1);
@@ -161,13 +162,14 @@ async function create_poll() {
     const v2 = document.getElementById("new-poll-v2").value;
     const v3 = document.getElementById("new-poll-v3").value;
     // Creation of poll and voting need more gas to execute.
+    status_message("Talking to the blockchain...");
     const poll = await window.contract.create_poll({question: question, variants: { v1: v1, v2: v2, v3: v3}},
         new BN(10000000000000));
-    window.console.log("poll is " + poll);
+    status_message("Ready, created " + poll);
     const base = document.documentURI.substr(0, document.documentURI.lastIndexOf('/'));
-    const poll_address = base + poll;
+    const poll_address = base + "/?poll_id=" + poll;
     document.getElementById("new-poll-address").innerHTML = 'Newly created poll at <a href="' + poll_address + '">' + poll_address + '</a>';
-    hide_create_poll()
+    hide_create_poll();
 }
 
 async function vote() {
@@ -179,9 +181,10 @@ async function vote() {
         votes[variant.id] = variant.checked ? 1 : 0 ;
     }
     // Creation of poll and voting needs more gas to execute.
+    status_message("Talking to the blockchain...");
     const result = await window.contract.vote({poll_id: window.voteState.pollId, votes: votes},
         new BN(10000000000000));
-    alert("Your voice is " + (result ? "counted" : "not counted"));
+    status_message("Your voice is " + (result ? "counted" : "NOT counted"));
 }
 
 // Loads nearlib and this contract into window scope.
@@ -193,9 +196,30 @@ window.nearInitPromise = InitContract()
 function show_create_poll() {
     const newPollForm = document.getElementById('new-poll-form');
     newPollForm.style.display = 'block';
+    hide_poll_results();
+    hide_poll_variants();
 }
 
 function hide_create_poll() {
     const newPollForm = document.getElementById('new-poll-form');
     newPollForm.style.display = 'none';
+}
+
+function show_poll_results() {
+    document.getElementById('show-poll-results').style.display = 'block';
+    hide_create_poll();
+    hide_poll_variants();
+}
+
+function hide_poll_results() {
+    document.getElementById('show-poll-results').style.display = 'none';
+}
+
+function status_message(text) {
+    document.getElementById('status-message-bar').innerText = text;
+}
+
+function hide_poll_variants() {
+    const vote = document.getElementById('vote-options');
+    if (vote) vote.style.display = 'none';
 }

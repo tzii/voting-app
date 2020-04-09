@@ -99,16 +99,15 @@ impl Voting {
     pub fn create_poll(&mut self, question: String, variants: HashMap<String, String>) -> String {
         env::log(
             format!(
-                "create_poll for {} currently have {}",
+                "create_poll for {} currently have {} polls",
                 question,
                 self.polls.len()
             )
             .as_bytes(),
         );
         let creator_account_id = env::signer_account_id();
-        let owner_account_id = env::current_account_id();
         let poll_id = bs58::encode(env::sha256(&env::random_seed())).into_string();
-        let result = format!("/?owner={}&poll_id={}", owner_account_id, poll_id);
+        let result = poll_id.clone();
         let mut variants_vec = <Vec<VotingOption>>::new();
         for (k, v) in variants.iter() {
             variants_vec.push(VotingOption {
@@ -136,20 +135,12 @@ impl Voting {
         return result;
     }
 
-    pub fn show_poll(&self, poll_id: String) -> VotingOptions {
+    pub fn show_poll(&self, poll_id: String) -> Option<VotingOptions> {
         match self.polls.get(&poll_id) {
-            Some(options) => options.clone(),
+            Some(options) => Some(options.clone()),
             None => {
                 env::log(format!("Unknown voting {}", poll_id).as_bytes());
-                VotingOptions {
-                    creator: "Bogus".to_string(),
-                    poll_id: "INVALID".to_string(),
-                    question: "Bogus question".to_string(),
-                    variants: vec![VotingOption {
-                        option_id: "variant".to_string(),
-                        message: "Variant".to_string(),
-                    }],
-                }
+                None
             }
         }
     }
@@ -200,11 +191,30 @@ mod tests {
     }
 
     #[test]
-    fn show_poll() {
+    fn nonexisting_poll() {
         let context = get_context(vec![], false);
         testing_env!(context);
         let contract = Voting::default();
         let options = contract.show_poll("default".to_string());
-        assert_eq!("Bogus".to_string(), options.creator);
+        assert_eq!(true, options.is_none());
+    }
+
+    #[test]
+    fn create_poll() {
+        let context = get_context(vec![], false);
+        testing_env!(context);
+        let mut contract = Voting::default();
+        let poll = contract.create_poll("To be or not to be?".to_string(),
+            [
+                ("v1".to_string(), "To be".to_string()),
+                ("v2".to_string(), "Not to be".to_string()),
+            ]
+            .iter()
+            .cloned()
+            .collect()
+        );
+        let options = contract.show_poll(poll);
+        assert_eq!(false, options.is_none());
+        assert_eq!("To be or not to be?".to_string(), options.unwrap().question);
     }
 }
