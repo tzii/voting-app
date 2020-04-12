@@ -90,12 +90,19 @@ function signedInFlow() {
     });
 
     document.getElementById('show-results-button').addEventListener('click', () => {
-        show_vote_results();
+        show_poll_results();
     });
 
-    // Adding an event to create vote.
     document.getElementById('create-poll-button').addEventListener('click', () => {
         show_create_poll();
+    });
+
+    document.getElementById('create-poll-add-variant').addEventListener('click', () => {
+        add_poll_variant();
+    });
+
+    document.getElementById('create-poll-remove-variant').addEventListener('click', () => {
+        remove_poll_variant();
     });
 
     document.getElementById('create-poll-submit').addEventListener('click', () => {
@@ -115,25 +122,35 @@ async function show_poll() {
         status_message('No such poll ' + window.voteState.pollId);
         return;
     }
-    var variants = '';
+    const voteForm = document.createElement('div');
+    voteForm.id = 'vote-form';
+    const fieldsetElement = document.createElement('fieldset');
+    const legendElement = document.createElement('legend');
+    legendElement.innerText = "Dear @" + window.accountId + " please vote on poll by @" + response.creator;
+    const questionElement = document.createElement('div');
+    questionElement.className = 'vote_question';
+    questionElement.innerText = response.question;
+    legendElement.appendChild(questionElement);
+
     for (var index = 0; index < response.variants.length; index++) {
         const v = response.variants[index];
-        variants += '<input type="checkbox" id="' + v.option_id +'" value="' + v.option_id + '">' +
-           '<label for="' + v.option_id + '">' + v.message + '</label><br>';
+        const checkboxElement = document.createElement('input');
+        checkboxElement.type = 'checkbox';
+        checkboxElement.id = v.option_id;
+        checkboxElement.value = v.option_id;
+        const labelElement = document.createElement('label');
+        labelElement.for = v.option_id;
+        labelElement.innerText = v.message;
+        fieldsetElement.appendChild(checkboxElement);
+        fieldsetElement.appendChild(labelElement);
+        fieldsetElement.appendChild(document.createElement('br'));
     }
-    const options = '<form id="vote-form">' +
-        '<fieldset>' +
-        '<legend>' +
-        "Dear @" + window.accountId + " please vote on poll by @" + response.creator + " <br/>" +
-        '<div class="vote_question">' +
-        response.question +
-        "</div>" +
-        '</legend>' +
-        variants +
-        '</fieldset>' +
-        '</form>';
-    document.getElementById('vote-options').innerHTML = options;
-    document.getElementById('vote-options').style.display = 'inline';
+    voteForm.appendChild(legendElement);
+    voteForm.appendChild(fieldsetElement);
+
+    const voteOptions = document.getElementById('vote-options');
+    voteOptions.replaceChild(voteForm, voteOptions.firstChild);
+    voteOptions.style.display = 'inline';
     hide_poll_results();
     document.getElementById('vote-button').style.display = 'inline';
     document.getElementById('show-results-button').style.display = 'inline';
@@ -144,7 +161,7 @@ function format_variant(poll, results, index) {
     return poll.variants[index].message + ' -> ' + (voted ? voted : 0);
 }
 
-async function show_vote_results() {
+async function show_poll_results() {
     if (!window.voteState.pollId) return;
     status_message("Talking to the blockchain...");
     const response = await window.contract.show_results({ poll_id: window.voteState.pollId } );
@@ -152,24 +169,52 @@ async function show_vote_results() {
     if (!response) {
         return;
     }
-    show_poll_results();
-    document.getElementById('result-poll-question').innerText = response.poll.question;
-    document.getElementById('result-poll-v1').innerText = format_variant(response.poll, response.results, 0);
-    document.getElementById('result-poll-v2').innerText = format_variant(response.poll, response.results, 1);
-    document.getElementById('result-poll-v3').innerText = format_variant(response.poll, response.results, 2);
-    const voted = Object.keys(response.results.voted).join(" ")
-    document.getElementById('result-poll-voted').innerText = voted;
+
+    document.getElementById('poll-results-form').style.display = 'block';
+    hide_create_poll();
+    hide_poll_variants();
+
+    const newHolder = document.createElement('div');
+    const questionItem = document.createElement('div');
+    questionItem.id = 'result-poll-question';
+    questionItem.className = 'vote_question';
+    questionItem.innerText = response.poll.question;
+    newHolder.appendChild(questionItem);
+
+
+    for (var index = 0; index < response.poll.variants.length; index++) {
+        const variantItem = document.createElement('div');
+        variantItem.className = 'vote_options';
+        variantItem.innerText = format_variant(response.poll, response.results, index);
+        newHolder.appendChild(variantItem);
+    }
+    const votedItem = document.createElement('div');
+    votedItem.id = 'result-poll-voted';
+    votedItem.className = 'voted';
+    votedItem.innerText = 'Voted: ' + Object.keys(response.results.voted).join(" ");
+    newHolder.appendChild(votedItem);
+
+    console.log(newHolder);
+
+    const resultsForm = document.getElementById('poll-results-form');
+    resultsForm.replaceChild(newHolder, resultsForm.firstElementChild);
+
     document.getElementById('vote-options').style.display = 'none';
 }
 
 async function create_poll() {
     const question = document.getElementById("new-poll-question").value;
-    const v1 = document.getElementById("new-poll-v1").value;
-    const v2 = document.getElementById("new-poll-v2").value;
-    const v3 = document.getElementById("new-poll-v3").value;
+    var index = 1;
+    const variants = {};
+    while (true) {
+        const v = document.getElementById("new-poll-v" + index);
+        if (!v) break;
+        variants['v' + index] = v.value;
+        index++;
+    }
     // Creation of poll and voting need more gas to execute.
     status_message("Talking to the blockchain...");
-    const poll = await window.contract.create_poll({question: question, variants: { v1: v1, v2: v2, v3: v3}},
+    const poll = await window.contract.create_poll({question: question, variants: variants},
         new BN(10000000000000));
     status_message("Ready, created " + poll);
     const base = document.documentURI.substr(0, document.documentURI.lastIndexOf('/'));
@@ -190,7 +235,7 @@ async function vote() {
     status_message("Talking to the blockchain...");
     const result = await window.contract.vote({poll_id: window.voteState.pollId, votes: votes},
         new BN(10000000000000));
-    status_message("Your voice is " + (result ? "counted" : "NOT counted"));
+    status_message("Your voice is " + (result ? "counted" : "NOT counted, already voted?"));
 }
 
 // Loads nearlib and this contract into window scope.
@@ -211,14 +256,8 @@ function hide_create_poll() {
     newPollForm.style.display = 'none';
 }
 
-function show_poll_results() {
-    document.getElementById('show-poll-results').style.display = 'block';
-    hide_create_poll();
-    hide_poll_variants();
-}
-
 function hide_poll_results() {
-    document.getElementById('show-poll-results').style.display = 'none';
+    document.getElementById('poll-results-form').style.display = 'none';
 }
 
 function status_message(text) {
@@ -228,4 +267,25 @@ function status_message(text) {
 function hide_poll_variants() {
     const vote = document.getElementById('vote-options');
     if (vote) vote.style.display = 'none';
+}
+
+function add_poll_variant() {
+    const newPollList = document.getElementById('new-poll-form-variants');
+    const index = newPollList.childElementCount + 1;
+    const newVariantId = "new-poll-v" + index;
+    const newVariantInput = document.createElement("input");
+    newVariantInput.type = 'text';
+    newVariantInput.id = newVariantId;
+    const newVariantLabel = document.createElement("label");
+    newVariantLabel.innerText = 'Variant ' + index + ': ';
+    newVariantLabel.for = newVariantId;
+    const newVariant = document.createElement("li");
+    newVariant.appendChild(newVariantLabel);
+    newVariant.appendChild(newVariantInput);
+    newPollList.appendChild(newVariant);
+}
+
+function remove_poll_variant() {
+    const newPollList = document.getElementById('new-poll-form-variants');
+    newPollList.removeChild(newPollList.lastChild);
 }

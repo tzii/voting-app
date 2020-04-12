@@ -204,14 +204,15 @@ mod tests {
         let context = get_context(vec![], false);
         testing_env!(context);
         let mut contract = Voting::default();
-        let poll = contract.create_poll("To be or not to be?".to_string(),
+        let poll = contract.create_poll(
+            "To be or not to be?".to_string(),
             [
                 ("v1".to_string(), "To be".to_string()),
                 ("v2".to_string(), "Not to be".to_string()),
             ]
             .iter()
             .cloned()
-            .collect()
+            .collect(),
         );
         let options = contract.show_poll(poll);
         assert_eq!(false, options.is_none());
