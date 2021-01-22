@@ -119,7 +119,7 @@ async function show_poll() {
     if (!window.voteState.pollId) return;
     const response = await window.contract.show_poll( { poll_id: window.voteState.pollId } );
     if (!response) {
-        status_message('No such poll ' + window.voteState.pollId);
+        voting_app('No such poll ' + window.voteState.pollId);
         return;
     }
     const voteForm = document.createElement('div');
@@ -163,9 +163,9 @@ function format_variant(poll, results, index) {
 
 async function show_poll_results() {
     if (!window.voteState.pollId) return;
-    status_message("Talking to the blockchain...");
+    voting_app("Talking to the blockchain...");
     const response = await window.contract.show_results({ poll_id: window.voteState.pollId } );
-    status_message("Ready!");
+    voting_app("Ready!");
     if (!response) {
         return;
     }
@@ -213,10 +213,10 @@ async function create_poll() {
         index++;
     }
     // Creation of poll and voting need more gas to execute.
-    status_message("Talking to the blockchain...");
+    voting_app("Talking to the blockchain...");
     const poll = await window.contract.create_poll({question: question, variants: variants},
         new BN(10000000000000));
-    status_message("Ready, created " + poll);
+    voting_app("Ready, created " + poll);
     const base = document.documentURI.substr(0, document.documentURI.lastIndexOf('/'));
     const poll_address = base + "/?poll_id=" + poll;
     document.getElementById("new-poll-address").innerHTML = 'Newly created poll at <a href="' + poll_address + '">' + poll_address + '</a>';
@@ -232,10 +232,10 @@ async function vote() {
         votes[variant.id] = variant.checked ? 1 : 0 ;
     }
     // Creation of poll and voting needs more gas to execute.
-    status_message("Talking to the blockchain...");
+    voting_app("Talking to the blockchain...");
     const result = await window.contract.vote({poll_id: window.voteState.pollId, votes: votes},
         new BN(10000000000000));
-    status_message("Your voice is " + (result ? "counted" : "NOT counted, already voted?"));
+    voting_app("Your voice is " + (result ? "counted" : "NOT counted, already voted?"));
 }
 
 // Loads near-api-js and this contract into window scope.
@@ -260,7 +260,7 @@ function hide_poll_results() {
     document.getElementById('poll-results-form').style.display = 'none';
 }
 
-function status_message(text) {
+function voting_app(text) {
     document.getElementById('status-message-bar').innerText = text;
 }
 

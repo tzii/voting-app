@@ -1,9 +1,9 @@
-# Status Message
+# Voting App
 
-Records the status messages of the accounts that call this contract.
+Allow voting upon a specific item on NEAR.
 
 ## Testing
 To test run:
 ```bash
-cargo test --package status-message -- --nocapture
+cargo test --package voting-app -- --nocapture
 ```
