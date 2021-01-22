@@ -2,7 +2,7 @@
 <br />
 
 <p>
-<img src="https://nearprotocol.com/wp-content/themes/near-19/assets/img/logo.svg?t=1553011311" width="240">
+<img src="https://near.org/wp-content/themes/near-19/assets/img/neue/logo.svg?t=1600963474" width="240">
 </p>
 
 <br />
@@ -10,13 +10,13 @@
 
 ## NEAR Voting Application
 ### Requirements
-##### IMPORTANT: Make sure you have the latest version of NEAR Shell and Node Version > 10.x
+##### IMPORTANT: Make sure you have the latest version of NEAR Cli and Node Version > 12.x
 
 1. [Node.js](https://nodejs.org/en/download/package-manager/)
-2. (optional) near-shell
+2. (optional) [near-cli](https://docs.near.org/docs/development/near-cli)
 
 ```
-npm i -g near-shell
+npm i -g near-cli
 ```
 3. (optional) yarn
 ```
@@ -54,7 +54,7 @@ yarn test
 
 #### Step 1: Create account for the contract
 
-You'll now want to authorize NEAR shell on your NEAR account, which will allow NEAR Shell to deploy contracts on your NEAR account's behalf \(and spend your NEAR account balance to do so\).
+You'll now want to authorize NEAR CLI on your NEAR account, which will allow NEAR CLI to deploy contracts on your NEAR account's behalf \(and spend your NEAR account balance to do so\).
 
 Type the command `near login` which opens a webpage at NEAR Wallet. Follow the instructions there and it will create a key for you, stored in the `/neardev` directory.
 
