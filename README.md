@@ -13,7 +13,7 @@
 ##### IMPORTANT: Make sure you have the latest version of NEAR Cli and Node Version > 12.x
 
 1. [Node.js](https://nodejs.org/en/download/package-manager/)
-2. (optional) [near-cli](https://docs.near.org/docs/development/near-cli)
+2. (optional) [near-cli](https://docs.near.org/docs/tools/near-cli)
 
 ```
 npm i -g near-cli
@@ -42,7 +42,6 @@ NOTE: Both contract and client-side code will auto-reload once you change source
 
 ```bash
 npm test
-```
 
 with yarn:
 
