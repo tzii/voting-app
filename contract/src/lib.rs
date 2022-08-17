@@ -158,8 +158,21 @@ impl Voting {
         }
     }
 
+    pub fn count_vote(&self,poll_id: String,vote:String) -> i32{
+        match self.polls.get(&poll_id) {
+            Some(_)=>match self.results.get(&poll_id) {
+                Some(results)=> match results.variants.get(&vote){
+                    Some(count)=>*count,
+                    None =>0
+                },
+                None => 0
+            },
+            None => 0
+        }
+    }
+
     pub fn ping(&self) -> String {
-        "PONG".to_string()
+        "PONG1234".to_string()
     }
 }
 
